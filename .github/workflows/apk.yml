@@ -1,0 +1,56 @@
+
+name: Compilar VenezuelaVoz APK
+
+on:
+  push:
+    paths:
+      - 'VenezuelaVoz_subir.zip'
+      - '.github/workflows/apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar archivos
+        uses: actions/checkout@v4
+
+      - name: Preparar proyecto
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          mkdir -p source app/src/main/java/com/venezuela/voz
+          unzip -o VenezuelaVoz_subir.zip -d source
+          find source -maxdepth 1 -name '*.kt' -exec mv {} app/src/main/java/com/venezuela/voz/ \;
+          mv source/AndroidManifest.xml app/src/main/AndroidManifest.xml
+          mv source/app_build.gradle.kts app/build.gradle.kts
+          mv source/build.gradle.kts build.gradle.kts
+          mv source/settings.gradle.kts settings.gradle.kts
+          mv source/gradle.properties gradle.properties
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Compilar APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: VenezuelaVoz-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
